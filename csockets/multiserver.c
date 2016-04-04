@@ -16,6 +16,9 @@
 void* connection_handler( void* );
 int message_handler( char* );
 char* remove_newline( char* );
+int read_handler( char* );
+int write_handler( char* );
+int isInt( char* );
 
 // Parameters passed in
 int NUM_MAILBOX = 0;
@@ -177,19 +180,18 @@ void* connection_handler( void* socket_desc )
 
 int message_handler( char* msg )
 {
-    printf( "Client's message: %s", msg );
+    //printf( "Client's message: %s", msg );
    
     //msg = remove_newline( msg );
  
     // parse the message
     const char delim[4] = " \t\n";
     char* token = NULL;
-    char* tokens[64];
-    int i = 0;
 
-    // extract the first word
+    // first command
     token = strtok( msg, delim );
-    printf( "token: %s\n", token );
+    
+    //printf( "token: %s\n", token );
     //fflush( stdout );
 
     // check to see if they're calling it quits
@@ -198,8 +200,38 @@ int message_handler( char* msg )
         return 0;
     }
 
-/*
-    // collect the words
+    // if we're writing to a mailbox
+    else if( strcmp( token, "w" ) == 0 )
+    {
+        printf( "Writing...\n" ); 
+        write_handler( msg );
+    }
+
+    // if we're reading from a mailbox
+    else if( strcmp( token, "r" ) == 0 )
+    {
+        printf( "Reading...\n" );
+        read_handler( msg );
+    }
+
+    // ignore all other bullshit
+    else
+    {
+        return 1;
+    }
+ 
+    return 1;
+}
+
+int read_handler( char* msg )
+{
+    // parsing shit
+    const char delim[4] = " \t\n";
+    char* token = NULL;
+    char* tokens[64];
+    int i = 0;
+    token = strtok( msg, delim );
+
     while( token != NULL )
     {
         tokens[i] = token;
@@ -207,9 +239,48 @@ int message_handler( char* msg )
         i++;
         token = strtok( NULL, delim );
     }
-*/ 
-    //token = NULL;
- 
+
+    return 1;
+}
+
+int write_handler( char* msg )
+{
+    printf( "heres\n" );
+    // parsing shit
+    const char delim[4] = " \t\n";
+    char* command = NULL;
+    char* token = NULL;
+    char* box_char = NULL;
+    int box_num = -1;
+    char* write_msg;
+    char* tokens[64];
+
+    // grab the first word
+    token = strtok( msg, delim );
+    //box_char = strtok( NULL, delim );
+
+    int i = 0;
+    while( token != NULL )
+    {
+        tokens[i] = token;
+        i++;
+
+        token = strtok( NULL, delim );
+    }
+
+    box_char = tokens[1];
+    if( isInt( box_char ) != 1 )
+    {
+        printf( "Invalid mailbox number\n" );
+        return 1;
+    }
+    box_num = atoi( box_char );        
+    
+    // get the remaining message
+    //write_msg = strtok( msg, "" );
+
+    //printf( "message: %s\n", write_msg );
+
     return 1;
 }
 
@@ -223,3 +294,34 @@ char* remove_newline( char* line )
 
     return line;
 }
+
+// Checks to see if a character is an int by comparing the ascii values
+// is between 48 (0) and 57 (9). Also checks for negative number
+// Param: char* num - character string to be check if an integer
+// Return: -1 - not an int, 1 - it's an int
+int isInt( char* num )
+{
+    int i = 0;
+
+    // if it's a negative number, ignore the - sign
+    if( num[0] == 45 )
+    {
+        i = 1;
+    }
+
+    // go through each decimal in the number passed in
+    while( num[i] )
+    {
+        // if it's in the boundaries of an int
+        if( num[i] < 48 || num[i] > 57 )
+        {
+            return -1;
+        }
+
+        i++;
+    }
+
+    // else, it's an int
+    return 1;
+}
+
