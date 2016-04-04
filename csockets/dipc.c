@@ -14,10 +14,10 @@
  
 // Fucntion prototypes
 void* connection_handler( void* );
-int message_handler( char* );
+int message_handler( char*, int );
 char* remove_newline( char* );
-int read_handler( char* );
-int write_handler( char* );
+int read_handler( char*, int );
+int write_handler( char*, char* );
 int isInt( char* );
 
 // Parameters passed in
@@ -149,7 +149,7 @@ void* connection_handler( void* socket_desc )
     {
         // Deal with the message here
         //printf( "Client's message %s", client_message );
-        flag = message_handler( client_message );
+        flag = message_handler( client_message, sock );
         // Send the message back to client
         //write( sock , client_message , strlen( client_message ) );
         
@@ -178,20 +178,21 @@ void* connection_handler( void* socket_desc )
     return 0;
 }
 
-int message_handler( char* msg )
-{
-    //printf( "Client's message: %s", msg );
-   
-    //msg = remove_newline( msg );
- 
+int message_handler( char* msg, int sock )
+{ 
     // parse the message
     const char delim[4] = " \t\n";
     char* token = NULL;
-
-    // first command
-    token = strtok( msg, delim );
+    char* box_char;
+    char* write_msg;    
+    int box_num = -1;
     
-    //printf( "token: %s\n", token );
+    // Grab the first command, the mailbox number (read and write)
+    // and the message (for write only)
+    token = strtok( msg, delim );
+    box_char = strtok( NULL, delim );   
+    write_msg = strtok( NULL, "" );
+
     //fflush( stdout );
 
     // check to see if they're calling it quits
@@ -203,15 +204,15 @@ int message_handler( char* msg )
     // if we're writing to a mailbox
     else if( strcmp( token, "w" ) == 0 )
     {
-        printf( "Writing...\n" ); 
-        write_handler( msg );
+        printf( "Writing...\n"); 
+        write_handler( write_msg, box_char );
     }
 
     // if we're reading from a mailbox
     else if( strcmp( token, "r" ) == 0 )
     {
         printf( "Reading...\n" );
-        read_handler( msg );
+        read_handler( box_char, sock );
     }
 
     // ignore all other bullshit
@@ -223,69 +224,74 @@ int message_handler( char* msg )
     return 1;
 }
 
-int read_handler( char* msg )
+int read_handler( char* box_char, int sock )
 {
-    // parsing shit
-    const char delim[4] = " \t\n";
-    char* token = NULL;
-    char* tokens[64];
-    int i = 0;
-    token = strtok( msg, delim );
+    // the mailbox number to read from
+    int box_num = -1;
 
-    while( token != NULL )
+    // holds the message in the box to be printed to the client
+    char* msg;
+
+    // If the number given from the user isn't even a number at all... idiot
+    if( !isInt( box_char ) )
     {
-        tokens[i] = token;
-        printf( "%s\n", tokens[i] );
-        i++;
-        token = strtok( NULL, delim );
+        printf( "Invalid mailbox number!\n" );
+        return 1;
     }
+
+    // convert the given number to an int
+    box_num = atoi( box_char );
+
+    // check to see if it's actually a mailbox
+    if( box_num < 0 || box_num > NUM_MAILBOX )
+    {
+        printf( "Mailbox does not exist!\n" );
+        return 1;
+    }
+
+    // grab that message
+    msg = MAILBOX[box_num];
+
+    // send it to the client
+    write( sock , msg , strlen( msg ) );
+
+    // wipe that mailbox out!
+    MAILBOX[box_num][0] = '\0';
 
     return 1;
 }
 
-int write_handler( char* msg )
+int write_handler( char* msg, char* box_char )
 {
-    printf( "heres\n" );
-    // parsing shit
-    const char delim[4] = " \t\n";
-    char* command = NULL;
-    char* token = NULL;
-    char* box_char = NULL;
+    // the box number it's trying to write to
     int box_num = -1;
-    char* write_msg;
-    char* tokens[64];
-
-    // grab the first word
-    token = strtok( msg, delim );
-    //box_char = strtok( NULL, delim );
-
-    int i = 0;
-    while( token != NULL )
+    
+    // if the box number passed in isn't a number at all... idiots.
+    if( !isInt( box_char ) )
     {
-        tokens[i] = token;
-        i++;
-
-        token = strtok( NULL, delim );
-    }
-
-    box_char = tokens[1];
-    if( isInt( box_char ) != 1 )
-    {
-        printf( "Invalid mailbox number\n" );
+        printf( "Invalid mailbox number!\n" );
         return 1;
     }
-    box_num = atoi( box_char );        
-    
-    // get the remaining message
-    //write_msg = strtok( msg, "" );
 
-    //printf( "message: %s\n", write_msg );
+    // convert it to an int
+    box_num = atoi( box_char );
+
+    // make sure the mailbox they're looking for is actually a mailbox
+    if( box_num < 0 || box_num > NUM_MAILBOX )
+    {
+        printf( "Mailbox does not exist!\n" );
+        return 1;
+    }
+
+    // write the message into that mailbox
+    MAILBOX[box_num] = msg;
 
     return 1;
 }
 
 char* remove_newline( char* line )
 {
+    printf( "checking int\n" );
     size_t len = strlen( line );
     if( len > 0 && line[len-1] == '\n' )
     {
