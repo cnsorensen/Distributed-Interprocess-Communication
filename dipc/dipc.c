@@ -75,7 +75,7 @@ int main( int argc, char** argv )
     ///need to destroy sometime
     for( i = 0; i < NUM_MAILBOX; i++ )
     {
-        printf( "Ham\n" );
+        //printf( "Ham\n" );
         pthread_mutex_init( &MAILBOX_LOCK[i], NULL );
     }
 
