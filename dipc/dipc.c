@@ -15,7 +15,7 @@
 // Fucntion prototypes
 void* connection_handler( void* );
 int message_handler( char*, int );
-char* remove_newline( char* );
+//char* remove_newline( char* );
 int read_handler( char*, int );
 int write_handler( char*, char*, int );
 int isInt( char* );
@@ -99,7 +99,7 @@ int main( int argc, char** argv )
     // Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_port = htons( 8888 );
+    server.sin_port = htons( PORT );
      
     // Bind
     if( bind( socket_desc, (struct sockaddr *)&server , sizeof( server ) ) < 0 )
@@ -108,6 +108,8 @@ int main( int argc, char** argv )
         perror( "Bind failed. Error!" );
         return -1;
     }
+
+    daemon( 1, 1 );
 
     // Listen
     listen( socket_desc , 3 );
@@ -125,9 +127,6 @@ int main( int argc, char** argv )
             perror( "Could not create thread." );
             return -1;
         }
-         
-        // Now join the thread , so that we dont terminate before the thread
-        puts( "Handler assigned!" );
     }
      
     if( client_sock < 0 )
@@ -191,9 +190,9 @@ void* connection_handler( void* socket_desc )
         }
     }
      
+    // client disconnected
     if( read_size == 0 )
     {
-        puts( "Client disconnected" );
         fflush( stdout );
     }
 
@@ -242,7 +241,7 @@ int message_handler( char* msg, int sock )
     }
 
     // if we're shutting down the server
-    else if( strcmp( token, "AVSLUTA" ) == 0 )
+    else if( strcmp( token, "RM" ) == 0 )
     {
         return -1;
     }
@@ -371,7 +370,7 @@ void initiate_shutdown( int sock_desc )
 
     return;
 }
-
+/*
 // Is given a char string, checks to see if there's a newline character
 // at the end. If so, removes it then returns it.
 char* remove_newline( char* line )
@@ -384,7 +383,7 @@ char* remove_newline( char* line )
 
     return line;
 }
-
+*/
 // Checks to see if a character is an int by comparing the ascii values
 // is between 48 (0) and 57 (9). Also checks for negative number
 // Param: char* num - character string to be check if an integer

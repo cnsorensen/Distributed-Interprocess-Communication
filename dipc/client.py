@@ -1,4 +1,11 @@
-# chat_client.py
+# client.py
+#
+# Sample client. Taken and revised from:
+#       http://www.bogotobogo.com
+# Params:
+#   host - the host address of the server
+#   port - the port of the server
+#
 
 import sys, socket, select
  
