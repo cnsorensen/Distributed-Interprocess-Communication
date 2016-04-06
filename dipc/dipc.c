@@ -182,6 +182,7 @@ void* connection_handler( void* socket_desc )
             break;
         }
         
+
         // if we're shutting down the socket
         if( flag == -1 )
         {
