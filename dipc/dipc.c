@@ -27,7 +27,9 @@ int MAILBOX_SIZE = 0;
 int PORT = 8888;
 int PACKET_SIZE = 0;
 
-// THE mailbox
+int SHUTDOWN_ME = 0;
+
+// THE mailbox and its locks
 char** MAILBOX;
 pthread_mutex_t* MAILBOX_LOCK;
 
@@ -62,8 +64,8 @@ int main( int argc, char** argv )
     int i;
     for( i = 0; i < NUM_MAILBOX; i++ )
     {
-        // 1 byte in a char, 1000 bytes in a KB
-        if( ( MAILBOX[i] = malloc( MAILBOX_SIZE * sizeof( char* ) * 1000 ) ) == NULL )
+        // 1 byte in a char, 1024 bytes in a KB
+        if( ( MAILBOX[i] = malloc( MAILBOX_SIZE * sizeof( char* ) * 1024 ) ) == NULL )
         {
             printf( "Error allocating mailboxes!\n" );
             return -1;
@@ -78,7 +80,6 @@ int main( int argc, char** argv )
     }
 
     // initialize the locks
-    ///need to destroy sometime
     for( i = 0; i < NUM_MAILBOX; i++ )
     {
         pthread_mutex_init( &MAILBOX_LOCK[i], NULL );
@@ -94,8 +95,7 @@ int main( int argc, char** argv )
     {
         printf( "Could not create socket" );
     }
-    ///puts( "Socket created" );
-     
+    
     // Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
@@ -108,18 +108,14 @@ int main( int argc, char** argv )
         perror( "Bind failed. Error!" );
         return -1;
     }
-    ///puts( "Bind done!" );
-     
+
     // Listen
     listen( socket_desc , 3 );
 
     // Accept and incoming connection
-    ///puts( "Waiting for incoming connections..." );
     c = sizeof( struct sockaddr_in );
     while( ( client_sock = accept( socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
-    {
-        ///puts( "Connection accepted!" );
-         
+    {    
         pthread_t sniffer_thread;
         new_sock = malloc(1);
         *new_sock = client_sock;
@@ -131,7 +127,6 @@ int main( int argc, char** argv )
         }
          
         // Now join the thread , so that we dont terminate before the thread
-        //pthread_join( sniffer_thread , NULL);
         puts( "Handler assigned!" );
     }
      
@@ -161,8 +156,15 @@ void* connection_handler( void* socket_desc )
     // This continues looping until the client shuts down
     while( ( read_size = recv( sock , client_message , 2000 , 0 ) ) > 0 )
     {
+        if( SHUTDOWN_ME == 1 )
+        {
+            free( socket_desc );
+            return 0;
+        }
+
+
         // if the user sent a message that's too large
-        if( strlen( client_message ) > PACKET_SIZE * 1000 )
+        if( strlen( client_message ) > PACKET_SIZE * 1024 )
         {
             char* pack_size_error = "Packet size too large. Unable to write.\n";
             write( sock, pack_size_error, strlen( pack_size_error ) );           
@@ -183,7 +185,7 @@ void* connection_handler( void* socket_desc )
         // if we're shutting down the socket
         if( flag == -1 )
         {
-            //close( socket_desc );
+            SHUTDOWN_ME = 1;
             initiate_shutdown( sock );
         }
     }
@@ -219,12 +221,6 @@ int message_handler( char* msg, int sock )
     box_char = strtok( NULL, delim );   
     write_msg = strtok( NULL, "" );
 
-    //fflush( stdout );
-
-    //remove_newline( msg );
-
-    ///printf( "token: %s\n", token );
-
     // check to see if they're calling it quits
     if( strcmp( token, "q" ) == 0 )
     {
@@ -233,8 +229,7 @@ int message_handler( char* msg, int sock )
 
     // if we're writing to a mailbox
     else if( strcmp( token, "w" ) == 0 )
-    {
-        ///printf( "Writing...\n"); 
+    { 
         write_handler( write_msg, box_char, sock );
     }
 
@@ -248,7 +243,6 @@ int message_handler( char* msg, int sock )
     // if we're shutting down the server
     else if( strcmp( token, "AVSLUTA" ) == 0 )
     {
-        printf( "Shutting down!\n" );
         return -1;
     }
 
@@ -307,8 +301,6 @@ int read_handler( char* box_char, int sock )
     // now that we're done here, we can unlock this mailbox
     pthread_mutex_unlock( &MAILBOX_LOCK[box_num] );
 
-    ///printf( "Finished reading!\n" );
-
     return 1;
 }
 
@@ -329,7 +321,6 @@ int write_handler( char* msg, char* box_char, int sock )
     // if the box number passed in isn't a number at all... idiots.
     if( !isInt( box_char ) )
     {
-        ///printf( "Invalid mailbox number!\n" );
         write( sock, num_error, strlen( num_error ) );
         return 1;
     }
@@ -356,30 +347,26 @@ int write_handler( char* msg, char* box_char, int sock )
     // now that we're done, we can unlock it
     pthread_mutex_unlock( &MAILBOX_LOCK[box_num] );
 
-    ///printf( "Finished writing!\n" );
-
     return 1;
 }
 
 void initiate_shutdown( int sock_desc )
 {
     int i;
-    for( i = 0; i < 10; i++ )
+    
+    // close the socket   
+    close( sock_desc );
+    
+    // destroy the threads
+    for( i = 0; i < NUM_MAILBOX; i++ )
     {
-        int n = close( sock_desc );
-        if( !n )
-        {
-            printf( "Shutdowned1!\n" );
-            exit(0);
-        }
-        usleep( 100 );
+        pthread_mutex_destroy( &MAILBOX_LOCK[i] );
     }
 
-    // destroy the thread
-    // deallocate the mailboxes
-    // disconnect all clients
+    // deallocate the mailboxes 
+    free( MAILBOX );
 
-    printf( "Close failed for %d\n", sock_desc );
+    exit(0);
 
     return;
 }
