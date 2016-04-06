@@ -162,7 +162,7 @@ void* connection_handler( void* socket_desc )
     while( ( read_size = recv( sock , client_message , 2000 , 0 ) ) > 0 )
     {
         // if the user sent a message that's too large
-        if( strlen( client_message ) > PACKET_SIZE )
+        if( strlen( client_message ) > PACKET_SIZE * 1000 )
         {
             char* pack_size_error = "Packet size too large. Unable to write.\n";
             write( sock, pack_size_error, strlen( pack_size_error ) );           
@@ -221,7 +221,7 @@ int message_handler( char* msg, int sock )
 
     //fflush( stdout );
 
-    remove_newline( msg );
+    //remove_newline( msg );
 
     ///printf( "token: %s\n", token );
 
@@ -374,6 +374,10 @@ void initiate_shutdown( int sock_desc )
         }
         usleep( 100 );
     }
+
+    // destroy the thread
+    // deallocate the mailboxes
+    // disconnect all clients
 
     printf( "Close failed for %d\n", sock_desc );
 
