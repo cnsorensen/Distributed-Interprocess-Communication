@@ -1,16 +1,20 @@
 # dipcrm.py
 #
-# Shuts down the surver.
+# Shuts down the server.
 # It assumes that the host is the localhost
 # Params: port - the port of the server
 #
+# This was found as a sample client from http://www.bogotobogo.com
+# It was revised and used for this project as the program to shut down the server.
+#
+# Usage: python dipcrm.py <port number>
 #
 
 import sys, socket, select
  
 def dipcrm():
     if( len( sys.argv ) < 2 ):
-        print 'Usage : python dipcrm.py port'
+        print 'Usage : python dipcrm.py <port>'
         sys.exit()
 
     #host = sys.argv[1]

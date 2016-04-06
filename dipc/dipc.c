@@ -1,7 +1,25 @@
 /*
-    C socket server example, handles multiple clients using threads
-    Borrowed from:
-    http://www.binarytides.com/server-client-example-c-sockets-linux/
+ * CSC 468 - Operating Systems
+ * Sprint 2016
+ * Dr. Jeff McGough
+ * Christine Sorensen
+ * 4/6/2016 
+ *
+ * A distributed interprocess communication tool. A middleware shared memory system. 
+ * The DIPC tools will provide shared memory storage and interprocess communication
+ * through a socket interface. It starts a server process and sets up shared memory.
+ * This is essentially a chat room with a set number of mailboxes and sizes where
+ * clients can come in and read/write into them. 
+ *
+ * This initial code was found and then extended and tailored for this program.
+ * http://www.binarytides.com/server-client-example-c-sockets-linux/
+ *
+ * Usage: ./dipc <number of mailboxes> <size of mailboxes in KB>
+ *              <port> <size of packet KB>
+ *
+ * Compile: gcc dipc.c -o dipc -lpthread
+ *      or use the provided Makefile.
+ *
 */
  
 #include <stdio.h>
@@ -55,7 +73,6 @@ int main( int argc, char** argv )
     }
 
     // allocate the mailboxes
-    ///figure out deallocation later
     if( ( MAILBOX = malloc( NUM_MAILBOX * sizeof( char* ) ) ) == NULL )
     {
         printf( "Error allocating mailboxes!\n" );
@@ -109,6 +126,7 @@ int main( int argc, char** argv )
         return -1;
     }
 
+    // changes the program to be daemon
     daemon( 1, 1 );
 
     // Listen
@@ -146,7 +164,6 @@ void* connection_handler( void* socket_desc )
     //Get the socket descriptor
     int sock = *(int*)socket_desc;
     int read_size;
-    ///char* message; 
     char client_message[2000];
 
     int flag = 1;
@@ -350,6 +367,14 @@ int write_handler( char* msg, char* box_char, int sock )
     return 1;
 }
 
+/*
+ * Shuts down the server.
+ * It closes the socket, destroys the mutexes, and deallocates
+ * the mailbox. Then is closes.
+ *
+ * This gets called when dicprm.py is ran with the server to shut
+ * it down.
+ */
 void initiate_shutdown( int sock_desc )
 {
     int i;
@@ -370,20 +395,7 @@ void initiate_shutdown( int sock_desc )
 
     return;
 }
-/*
-// Is given a char string, checks to see if there's a newline character
-// at the end. If so, removes it then returns it.
-char* remove_newline( char* line )
-{
-    size_t len = strlen( line );
-    if( len > 0 && line[len-1] == '\n' )
-    {
-        line[--len] = '\0';
-    }
 
-    return line;
-}
-*/
 // Checks to see if a character is an int by comparing the ascii values
 // is between 48 (0) and 57 (9). Also checks for negative number
 // Param: char* num - character string to be check if an integer
