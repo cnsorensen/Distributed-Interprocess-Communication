@@ -19,6 +19,7 @@ char* remove_newline( char* );
 int read_handler( char*, int );
 int write_handler( char*, char*, int );
 int isInt( char* );
+void initiate_shutdown();
 
 // Parameters passed in
 int NUM_MAILBOX = 0;
@@ -180,10 +181,11 @@ void* connection_handler( void* socket_desc )
         }
         
         // if we're shutting down the socket
-        /*if( flag == -1 )
+        if( flag == -1 )
         {
-            close( socket_desc );
-        }*/
+            //close( socket_desc );
+            initiate_shutdown( sock );
+        }
     }
      
     if( read_size == 0 )
@@ -219,6 +221,8 @@ int message_handler( char* msg, int sock )
 
     //fflush( stdout );
 
+    remove_newline( msg );
+
     ///printf( "token: %s\n", token );
 
     // check to see if they're calling it quits
@@ -230,14 +234,14 @@ int message_handler( char* msg, int sock )
     // if we're writing to a mailbox
     else if( strcmp( token, "w" ) == 0 )
     {
-        printf( "Writing...\n"); 
+        ///printf( "Writing...\n"); 
         write_handler( write_msg, box_char, sock );
     }
 
     // if we're reading from a mailbox
     else if( strcmp( token, "r" ) == 0 )
     {
-        printf( "Reading...\n" );
+        ///printf( "Reading...\n" );
         read_handler( box_char, sock );
     }
 
@@ -303,7 +307,7 @@ int read_handler( char* box_char, int sock )
     // now that we're done here, we can unlock this mailbox
     pthread_mutex_unlock( &MAILBOX_LOCK[box_num] );
 
-    printf( "Finished reading!\n" );
+    ///printf( "Finished reading!\n" );
 
     return 1;
 }
@@ -325,7 +329,7 @@ int write_handler( char* msg, char* box_char, int sock )
     // if the box number passed in isn't a number at all... idiots.
     if( !isInt( box_char ) )
     {
-        //printf( "Invalid mailbox number!\n" );
+        ///printf( "Invalid mailbox number!\n" );
         write( sock, num_error, strlen( num_error ) );
         return 1;
     }
@@ -352,9 +356,28 @@ int write_handler( char* msg, char* box_char, int sock )
     // now that we're done, we can unlock it
     pthread_mutex_unlock( &MAILBOX_LOCK[box_num] );
 
-    printf( "Finished writing!\n" );
+    ///printf( "Finished writing!\n" );
 
     return 1;
+}
+
+void initiate_shutdown( int sock_desc )
+{
+    int i;
+    for( i = 0; i < 10; i++ )
+    {
+        int n = close( sock_desc );
+        if( !n )
+        {
+            printf( "Shutdowned1!\n" );
+            exit(0);
+        }
+        usleep( 100 );
+    }
+
+    printf( "Close failed for %d\n", sock_desc );
+
+    return;
 }
 
 // Is given a char string, checks to see if there's a newline character
