@@ -30,14 +30,12 @@ int PACKET_SIZE = 0;
 char** MAILBOX;
 pthread_mutex_t* MAILBOX_LOCK;
 
-
-
 int main( int argc, char** argv )
 {
     // check for usage
     if( argc != 5 )
     {
-        printf( "Usage: dipc <num mailboxes> <mailbox size KB> <port num> <size of packets>\n");
+        printf( "Usage: dipc <num mailboxes> <mailbox size KB> <port num> <size of packets KB>\n");
         return -1;
     }
     
@@ -46,6 +44,12 @@ int main( int argc, char** argv )
     MAILBOX_SIZE = atoi( argv[2] );
     PORT = atoi( argv[3] );
     PACKET_SIZE = atoi( argv[4] );
+
+    if( PACKET_SIZE > MAILBOX_SIZE )
+    {
+        printf( "Error: Packetsize too large for mailbox.\n" );
+        return -1;
+    }
 
     // allocate the mailboxes
     ///figure out deallocation later
@@ -57,7 +61,8 @@ int main( int argc, char** argv )
     int i;
     for( i = 0; i < NUM_MAILBOX; i++ )
     {
-        if( ( MAILBOX[i] = malloc( MAILBOX_SIZE * sizeof( char* ) ) ) == NULL )
+        // 1 byte in a char, 1000 bytes in a KB
+        if( ( MAILBOX[i] = malloc( MAILBOX_SIZE * sizeof( char* ) * 1000 ) ) == NULL )
         {
             printf( "Error allocating mailboxes!\n" );
             return -1;
@@ -75,7 +80,6 @@ int main( int argc, char** argv )
     ///need to destroy sometime
     for( i = 0; i < NUM_MAILBOX; i++ )
     {
-        //printf( "Ham\n" );
         pthread_mutex_init( &MAILBOX_LOCK[i], NULL );
     }
 
@@ -109,7 +113,7 @@ int main( int argc, char** argv )
     listen( socket_desc , 3 );
 
     // Accept and incoming connection
-    puts( "Waiting for incoming connections..." );
+    ///puts( "Waiting for incoming connections..." );
     c = sizeof( struct sockaddr_in );
     while( ( client_sock = accept( socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
     {
@@ -147,7 +151,7 @@ void* connection_handler( void* socket_desc )
     //Get the socket descriptor
     int sock = *(int*)socket_desc;
     int read_size;
-    char* message; 
+    ///char* message; 
     char client_message[2000];
 
     int flag = 1;
@@ -156,18 +160,30 @@ void* connection_handler( void* socket_desc )
     // This continues looping until the client shuts down
     while( ( read_size = recv( sock , client_message , 2000 , 0 ) ) > 0 )
     {
-        // Deal with the message here
-        //printf( "Client's message %s", client_message );
-        flag = message_handler( client_message, sock );
-        // Send the message back to client
-        //write( sock , client_message , strlen( client_message ) );
-        
+        // if the user sent a message that's too large
+        if( strlen( client_message ) > PACKET_SIZE )
+        {
+            char* pack_size_error = "Packet size too large. Unable to write.\n";
+            write( sock, pack_size_error, strlen( pack_size_error ) );           
+        }
+        else
+        {
+            // Deal with the message here
+            flag = message_handler( client_message, sock );
+        }
+
         // if the user is quiting
-        if( flag != 1 )
+        if( flag == 0 )
         {
             read_size = 0;
             break;
         }
+        
+        // if we're shutting down the socket
+        /*if( flag == -1 )
+        {
+            close( socket_desc );
+        }*/
     }
      
     if( read_size == 0 )
@@ -194,7 +210,6 @@ int message_handler( char* msg, int sock )
     char* token = NULL;
     char* box_char;
     char* write_msg;    
-    int box_num = -1;
     
     // Grab the first command, the mailbox number (read and write)
     // and the message (for write only)
@@ -203,6 +218,8 @@ int message_handler( char* msg, int sock )
     write_msg = strtok( NULL, "" );
 
     //fflush( stdout );
+
+    ///printf( "token: %s\n", token );
 
     // check to see if they're calling it quits
     if( strcmp( token, "q" ) == 0 )
@@ -222,6 +239,13 @@ int message_handler( char* msg, int sock )
     {
         printf( "Reading...\n" );
         read_handler( box_char, sock );
+    }
+
+    // if we're shutting down the server
+    else if( strcmp( token, "AVSLUTA" ) == 0 )
+    {
+        printf( "Shutting down!\n" );
+        return -1;
     }
 
     // ignore all other bullshit
@@ -333,6 +357,8 @@ int write_handler( char* msg, char* box_char, int sock )
     return 1;
 }
 
+// Is given a char string, checks to see if there's a newline character
+// at the end. If so, removes it then returns it.
 char* remove_newline( char* line )
 {
     size_t len = strlen( line );

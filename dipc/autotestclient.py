@@ -1,4 +1,14 @@
 # chat_client.py
+#
+# This is a personal debugging extension of a client code.
+# It recieves the address and port number to connect to the server
+# It also recieves the number of mailboxes that the server had
+# And it recieves the name of the user
+# It randomizes which mailbox to go to
+# And it randomizes its read and writes
+# It writes a message with its name to a mailbox
+# It auto does this until the user force stops the program
+#
 
 import random, sys, socket, select, time
  
@@ -22,8 +32,8 @@ def chat_client():
         print 'Unable to connect'
         sys.exit()
      
-    print 'Connected to remote host. You can start sending messages'
-    sys.stdout.write('[Me] '); sys.stdout.flush()
+    print 'Connected to remote host. Hit enter to start automation'
+    sys.stdout.write('[' + name + '] '); sys.stdout.flush()
      
     while 1:
         socket_list = [sys.stdin, s]
@@ -41,7 +51,7 @@ def chat_client():
                 else :
                     #print data
                     sys.stdout.write(data)
-                    sys.stdout.write('[Me] '); sys.stdout.flush()     
+                    sys.stdout.write('[' + name + '] '); sys.stdout.flush()     
             
             else :
                 # user entered a message
@@ -51,19 +61,19 @@ def chat_client():
                 msg = generate_message( n, name )
                 time.sleep( 1 );
                 s.send(msg)
-                sys.stdout.write('[Me] '); sys.stdout.flush() 
+                sys.stdout.write('[' + name + '] '); sys.stdout.flush() 
 
 def generate_message( n, name ):
 
     num = random.randint( 1, n )
     rw_n = random.randint( 1, 2 )
 
-    print "generating a message"
-
     if rw_n == 1:
         msg = "r " + str(num)
+        print "Reading from mailbox " + str(num)
     elif rw_n == 2:
-        msg = "w " + str(num) + "message from " + name + " \n"
+        msg = "w " + str(num) + "message from " + name + " " + str(num) + " \n"
+        print "Writing to mailbox " + str(num)
 
     return msg;
 
