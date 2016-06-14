@@ -25,8 +25,7 @@ Required elements:
         *       k = number of mailboxes requested 
         *       block size = size of the mailbox
 
-    *   Create the socket server which can hand
-        
+    *   Create the socket server which can hand        
     *   Returns (exits) with error message if server init fails, otherwise runs in the background like a daemon.
 
 * DIPC removal
