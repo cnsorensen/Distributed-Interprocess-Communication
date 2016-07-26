@@ -1,3 +1,0 @@
-Greate a global table of clients, protected by a mutex. When a new client connects, ad them to the global tabe. When it disconnects, remove them.
-
-When a client sends a message acquire the lock on the global table and traverse it. Sen the message to all clients (other than the sent message if you don't want it echoed bac)

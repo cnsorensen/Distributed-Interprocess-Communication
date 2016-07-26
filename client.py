@@ -1,16 +1,62 @@
-# From Dr. McGough
+# client.py
+#
+# Sample client. Taken and revised from:
+#       http://www.bogotobogo.com
+# Params:
+#   host - the host address of the server
+#   port - the port of the server
+#
+# Usage: python client.py <hostname> <port number>
+#
 
-from socket import *
-HOST = 'localhost'
-PORT = 5000
-s = socket ( AF_INET , SOCK_STREAM ) 
-s.connect((HOST, PORT))
-while True :
-  message = raw_input("> ") 
-  if message == 'q': break
-  if message != '': 
-    s.send(message)
-    data = s.recv(1024)
-    print 'Received' , repr(data)
-s.close()
+import sys, socket, select
+ 
+def chat_client():
+    if(len(sys.argv) < 3) :
+        print 'Usage : python client.py hostname port'
+        sys.exit()
 
+    host = sys.argv[1]
+    port = int(sys.argv[2])
+     
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(2)
+     
+    # connect to remote host
+    try :
+        s.connect((host, port))
+    except :
+        print 'Unable to connect'
+        sys.exit()
+     
+    print 'Connected to remote host. You can start sending messages'
+    sys.stdout.write('[Me] '); sys.stdout.flush()
+     
+    while 1:
+        socket_list = [sys.stdin, s]
+         
+        # Get the list sockets which are readable
+        read_sockets, write_sockets, error_sockets = select.select(socket_list , [], [])
+         
+        for sock in read_sockets:            
+            if sock == s:
+                # incoming message from remote server, s
+                data = sock.recv(4096)
+                if not data :
+                    print '\nDisconnected from chat server'
+                    sys.exit()
+                else :
+                    #print data
+                    sys.stdout.write(data)
+                    sys.stdout.write('[Me] '); sys.stdout.flush()     
+            
+            else :
+                # user entered a message
+                msg = sys.stdin.readline()
+                msg.rstrip('\n');
+                s.send(msg)
+                sys.stdout.write('[Me] '); sys.stdout.flush() 
+
+if __name__ == "__main__":
+
+    sys.exit( chat_client() )
