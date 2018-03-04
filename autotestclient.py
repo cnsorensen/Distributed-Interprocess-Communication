@@ -58,15 +58,15 @@ def chat_client():
                 #msg = sys.stdin.readline()
                 #msg.rstrip('\n');
                 # send the message to the server
-                msg = generate_message( n, name )
-                time.sleep( 1 );
+                msg = generate_message(n, name)
+                time.sleep(1);
                 s.send(msg)
                 sys.stdout.write('[' + name + '] '); sys.stdout.flush() 
 
-def generate_message( n, name ):
+def generate_message(n, name):
 
-    num = random.randint( 1, n )
-    rw_n = random.randint( 1, 2 )
+    num = random.randint(1, n)
+    rw_n = random.randint(1, 2)
 
     if rw_n == 1:
         msg = "r " + str(num)

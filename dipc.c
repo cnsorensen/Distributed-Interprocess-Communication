@@ -31,12 +31,12 @@
 #include <pthread.h> // for threading , link with lpthread
  
 // Fucntion prototypes
-void* connection_handler( void* );
-int message_handler( char*, int );
-//char* remove_newline( char* );
-int read_handler( char*, int );
-int write_handler( char*, char*, int );
-int isInt( char* );
+void* connection_handler(void*);
+int message_handler(char*, int);
+//char* remove_newline(char*);
+int read_handler(char*, int);
+int write_handler(char*, char*, int);
+int isInt(char*);
 void initiate_shutdown();
 
 // Parameters passed in
@@ -51,55 +51,55 @@ int SHUTDOWN_ME = 0;
 char** MAILBOX;
 pthread_mutex_t* MAILBOX_LOCK;
 
-int main( int argc, char** argv )
+int main(int argc, char** argv)
 {
     // check for usage
-    if( argc != 5 )
+    if(argc != 5)
     {
-        printf( "Usage: dipc <num mailboxes> <mailbox size KB> <port num> <size of packets KB>\n");
+        printf("Usage: dipc <num mailboxes> <mailbox size KB> <port num> <size of packets KB>\n");
         return -1;
     }
     
     // assign the parameter values
-    NUM_MAILBOX = atoi( argv[1] );
-    MAILBOX_SIZE = atoi( argv[2] );
-    PORT = atoi( argv[3] );
-    PACKET_SIZE = atoi( argv[4] );
+    NUM_MAILBOX = atoi(argv[1]);
+    MAILBOX_SIZE = atoi(argv[2]);
+    PORT = atoi(argv[3]);
+    PACKET_SIZE = atoi(argv[4]);
 
-    if( PACKET_SIZE > MAILBOX_SIZE )
+    if(PACKET_SIZE > MAILBOX_SIZE)
     {
-        printf( "Error: Packetsize too large for mailbox.\n" );
+        printf("Error: Packetsize too large for mailbox.\n");
         return -1;
     }
 
     // allocate the mailboxes
-    if( ( MAILBOX = malloc( NUM_MAILBOX * sizeof( char* ) ) ) == NULL )
+    if((MAILBOX = malloc( NUM_MAILBOX * sizeof( char*)) ) == NULL )
     {
-        printf( "Error allocating mailboxes!\n" );
+        printf("Error allocating mailboxes!\n");
         return -1;
     }
     int i;
-    for( i = 0; i < NUM_MAILBOX; i++ )
+    for(i = 0; i < NUM_MAILBOX; i++)
     {
         // 1 byte in a char, 1024 bytes in a KB
-        if( ( MAILBOX[i] = malloc( MAILBOX_SIZE * sizeof( char* ) * 1024 ) ) == NULL )
+        if((MAILBOX[i] = malloc( MAILBOX_SIZE * sizeof( char*) * 1024) ) == NULL )
         {
-            printf( "Error allocating mailboxes!\n" );
+            printf("Error allocating mailboxes!\n");
             return -1;
         }
     }
 
     // allocate the locks for the mailboxes
-    if( ( MAILBOX_LOCK = malloc( NUM_MAILBOX * sizeof( pthread_mutex_t ) ) ) == NULL )
+    if((MAILBOX_LOCK = malloc( NUM_MAILBOX * sizeof( pthread_mutex_t)) ) == NULL )
     {
-        printf( "Error allocating locks for the mailboxes!\n" );
+        printf("Error allocating locks for the mailboxes!\n");
         return -1;
     }
 
     // initialize the locks
-    for( i = 0; i < NUM_MAILBOX; i++ )
+    for(i = 0; i < NUM_MAILBOX; i++)
     {
-        pthread_mutex_init( &MAILBOX_LOCK[i], NULL );
+        pthread_mutex_init(&MAILBOX_LOCK[i], NULL);
     }
 
     int socket_desc, client_sock, c;
@@ -107,49 +107,49 @@ int main( int argc, char** argv )
     struct sockaddr_in server, client;
      
     // Create socket
-    socket_desc = socket( AF_INET, SOCK_STREAM, 0 );
-    if ( socket_desc == -1 )
+    socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_desc == -1)
     {
-        printf( "Could not create socket" );
+        printf("Could not create socket");
     }
     
     // Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_port = htons( PORT );
+    server.sin_port = htons(PORT);
      
     // Bind
-    if( bind( socket_desc, (struct sockaddr *)&server , sizeof( server ) ) < 0 )
+    if(bind(socket_desc, (struct sockaddr *)&server , sizeof( server)) < 0 )
     {
         // print the error message
-        perror( "Bind failed. Error!" );
+        perror("Bind failed. Error!");
         return -1;
     }
 
     // changes the program to be daemon
-    daemon( 1, 1 );
+    daemon(1, 1);
 
     // Listen
-    listen( socket_desc , 3 );
+    listen(socket_desc , 3);
 
     // Accept and incoming connection
-    c = sizeof( struct sockaddr_in );
-    while( ( client_sock = accept( socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
+    c = sizeof(struct sockaddr_in);
+    while((client_sock = accept( socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)))
     {    
         pthread_t sniffer_thread;
         new_sock = malloc(1);
         *new_sock = client_sock;
          
-        if( pthread_create( &sniffer_thread , NULL ,  connection_handler , (void*) new_sock) < 0)
+        if(pthread_create(&sniffer_thread , NULL ,  connection_handler , (void*) new_sock) < 0)
         {
-            perror( "Could not create thread." );
+            perror("Could not create thread.");
             return -1;
         }
     }
      
-    if( client_sock < 0 )
+    if(client_sock < 0)
     {
-        perror( "Accept failed." );
+        perror("Accept failed.");
         return -1;
     }
      
@@ -159,7 +159,7 @@ int main( int argc, char** argv )
 /*
  * This will handle connection for each client
  * */
-void* connection_handler( void* socket_desc )
+void* connection_handler(void* socket_desc)
 {
     //Get the socket descriptor
     int sock = *(int*)socket_desc;
@@ -170,29 +170,29 @@ void* connection_handler( void* socket_desc )
 
     // Receive a message from client
     // This continues looping until the client shuts down
-    while( ( read_size = recv( sock , client_message , 2000 , 0 ) ) > 0 )
+    while((read_size = recv( sock , client_message , 2000 , 0)) > 0 )
     {
-        if( SHUTDOWN_ME == 1 )
+        if(SHUTDOWN_ME == 1)
         {
-            free( socket_desc );
+            free(socket_desc);
             return 0;
         }
 
 
         // if the user sent a message that's too large
-        if( strlen( client_message ) > PACKET_SIZE * 1024 )
+        if(strlen(client_message) > PACKET_SIZE * 1024)
         {
             char* pack_size_error = "Packet size too large. Unable to write.\n";
-            write( sock, pack_size_error, strlen( pack_size_error ) );           
+            write(sock, pack_size_error, strlen(pack_size_error));           
         }
         else
         {
             // Deal with the message here
-            flag = message_handler( client_message, sock );
+            flag = message_handler(client_message, sock);
         }
 
         // if the user is quiting
-        if( flag == 0 )
+        if(flag == 0)
         {
             read_size = 0;
             break;
@@ -200,31 +200,31 @@ void* connection_handler( void* socket_desc )
         
 
         // if we're shutting down the socket
-        if( flag == -1 )
+        if(flag == -1)
         {
             SHUTDOWN_ME = 1;
-            initiate_shutdown( sock );
+            initiate_shutdown(sock);
         }
     }
      
     // client disconnected
-    if( read_size == 0 )
+    if(read_size == 0)
     {
-        fflush( stdout );
+        fflush(stdout);
     }
 
-    else if( read_size == -1 )
+    else if(read_size == -1)
     {
-        perror( "Recv failed" );
+        perror("Recv failed");
     }
          
     // Free the socket pointer
-    free( socket_desc );
+    free(socket_desc);
      
     return 0;
 }
 
-int message_handler( char* msg, int sock )
+int message_handler(char* msg, int sock)
 { 
     // parse the message
     const char delim[4] = " \t\n";
@@ -234,31 +234,31 @@ int message_handler( char* msg, int sock )
     
     // Grab the first command, the mailbox number (read and write)
     // and the message (for write only)
-    token = strtok( msg, delim );
-    box_char = strtok( NULL, delim );   
-    write_msg = strtok( NULL, "" );
+    token = strtok(msg, delim);
+    box_char = strtok(NULL, delim);   
+    write_msg = strtok(NULL, "");
 
     // check to see if they're calling it quits
-    if( strcmp( token, "q" ) == 0 )
+    if(strcmp(token, "q") == 0)
     {
         return 0;
     }
 
     // if we're writing to a mailbox
-    else if( strcmp( token, "w" ) == 0 )
+    else if(strcmp(token, "w") == 0)
     { 
-        write_handler( write_msg, box_char, sock );
+        write_handler(write_msg, box_char, sock);
     }
 
     // if we're reading from a mailbox
-    else if( strcmp( token, "r" ) == 0 )
+    else if(strcmp(token, "r") == 0)
     {
-        ///printf( "Reading...\n" );
-        read_handler( box_char, sock );
+        ///printf("Reading...\n");
+        read_handler(box_char, sock);
     }
 
     // if we're shutting down the server
-    else if( strcmp( token, "RM" ) == 0 )
+    else if(strcmp(token, "RM") == 0)
     {
         return -1;
     }
@@ -272,7 +272,7 @@ int message_handler( char* msg, int sock )
     return 1;
 }
 
-int read_handler( char* box_char, int sock )
+int read_handler(char* box_char, int sock)
 {
     // the mailbox number to read from
     int box_num = -1;
@@ -284,47 +284,47 @@ int read_handler( char* box_char, int sock )
     char* num_error = "Invalid mailbox number.\n";
 
     // If the number given from the user isn't even a number at all... idiot
-    if( !isInt( box_char ) )
+    if(!isInt(box_char))
     {
-        write( sock, num_error, strlen( num_error ) );
+        write(sock, num_error, strlen(num_error));
         return 1;
     }
 
     // convert the given number to an int
-    box_num = atoi( box_char );
+    box_num = atoi(box_char);
     
     // convert for csc friendly array accessing :)
     box_num = box_num - 1;
 
     // check to see if it's actually a mailbox
-    if( box_num < 0 || box_num >= NUM_MAILBOX )
+    if(box_num < 0 || box_num >= NUM_MAILBOX)
     {
-        write( sock, num_error, strlen( num_error ) );
+        write(sock, num_error, strlen(num_error));
         return 1;
     }
 
     // lock the mutex lock to THAT mailbox
-    pthread_mutex_lock( &MAILBOX_LOCK[box_num] );
+    pthread_mutex_lock(&MAILBOX_LOCK[box_num]);
     
     // grab that message
     msg = MAILBOX[box_num];
 
     // send it to the client
-    write( sock , msg , strlen( msg ) );
+    write(sock , msg , strlen(msg));
 
     // wipe that mailbox out!
     MAILBOX[box_num][0] = '\0';
 
     // now that we're done here, we can unlock this mailbox
-    pthread_mutex_unlock( &MAILBOX_LOCK[box_num] );
+    pthread_mutex_unlock(&MAILBOX_LOCK[box_num]);
 
     return 1;
 }
 
-int write_handler( char* msg, char* box_char, int sock )
+int write_handler(char* msg, char* box_char, int sock)
 {
     // the user didn't provide a message. Return unless you want a seggy fault
-    if( msg == NULL )
+    if(msg == NULL)
     {
         return 1;
     }
@@ -336,33 +336,33 @@ int write_handler( char* msg, char* box_char, int sock )
     char* num_error = "Invalid mailbox number.\n";
 
     // if the box number passed in isn't a number at all... idiots.
-    if( !isInt( box_char ) )
+    if(!isInt(box_char))
     {
-        write( sock, num_error, strlen( num_error ) );
+        write(sock, num_error, strlen(num_error));
         return 1;
     }
 
     // convert it to an int
-    box_num = atoi( box_char );
+    box_num = atoi(box_char);
 
     // convert for csc friendly array accessing :)
     box_num = box_num - 1;
 
     // make sure the mailbox they're looking for is actually a mailbox
-    if( box_num < 0 || box_num >= NUM_MAILBOX )
+    if(box_num < 0 || box_num >= NUM_MAILBOX)
     {
-        write( sock, num_error, strlen( num_error ) );       
+        write(sock, num_error, strlen(num_error));       
         return 1;
     }
 
     // lock this mailbox with its pthread mutex
-    pthread_mutex_lock( &MAILBOX_LOCK[box_num] );
+    pthread_mutex_lock(&MAILBOX_LOCK[box_num]);
 
     // write the message into that mailbox
     MAILBOX[box_num] = msg;
 
     // now that we're done, we can unlock it
-    pthread_mutex_unlock( &MAILBOX_LOCK[box_num] );
+    pthread_mutex_unlock(&MAILBOX_LOCK[box_num]);
 
     return 1;
 }
@@ -375,21 +375,21 @@ int write_handler( char* msg, char* box_char, int sock )
  * This gets called when dicprm.py is ran with the server to shut
  * it down.
  */
-void initiate_shutdown( int sock_desc )
+void initiate_shutdown(int sock_desc)
 {
     int i;
     
     // close the socket   
-    close( sock_desc );
+    close(sock_desc);
     
     // destroy the threads
-    for( i = 0; i < NUM_MAILBOX; i++ )
+    for(i = 0; i < NUM_MAILBOX; i++)
     {
-        pthread_mutex_destroy( &MAILBOX_LOCK[i] );
+        pthread_mutex_destroy(&MAILBOX_LOCK[i]);
     }
 
     // deallocate the mailboxes 
-    free( MAILBOX );
+    free(MAILBOX);
 
     exit(0);
 
@@ -400,21 +400,21 @@ void initiate_shutdown( int sock_desc )
 // is between 48 (0) and 57 (9). Also checks for negative number
 // Param: char* num - character string to be check if an integer
 // Return: -1 - not an int, 1 - it's an int
-int isInt( char* num )
+int isInt(char* num)
 {
     int i = 0;
 
     // if it's a negative number, ignore the - sign
-    if( num[0] == 45 )
+    if(num[0] == 45)
     {
         i = 1;
     }
 
     // go through each decimal in the number passed in
-    while( num[i] )
+    while(num[i])
     {
         // if it's in the boundaries of an int
-        if( num[i] < 48 || num[i] > 57 )
+        if(num[i] < 48 || num[i] > 57)
         {
             return -1;
         }

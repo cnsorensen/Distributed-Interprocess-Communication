@@ -3,7 +3,7 @@
 from socket import *
 HOST = 'localhost'
 PORT = 5000
-s = socket ( AF_INET , SOCK_STREAM ) 
+s = socket (AF_INET , SOCK_STREAM) 
 s.connect((HOST, PORT))
 while True :
   message = raw_input("> ") 

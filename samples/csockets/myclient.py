@@ -22,7 +22,7 @@ int main(int argc , char *argv[])
      
     server.sin_addr.s_addr = inet_addr("127.0.0.1");
     server.sin_family = AF_INET;
-    server.sin_port = htons( 8888 );
+    server.sin_port = htons(8888);
  
     //Connect to remote server
     if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
@@ -40,14 +40,14 @@ int main(int argc , char *argv[])
         scanf("%s" , message);
          
         //Send some data
-        if( send(sock , message , strlen(message) , 0) < 0)
+        if(send(sock , message , strlen(message) , 0) < 0)
         {
             puts("Send failed");
             return 1;
         }
 
         //Receive a reply from the server
-        if( recv(sock , server_reply , 2000 , 0) < 0)
+        if(recv(sock , server_reply , 2000 , 0) < 0)
         {
             puts("recv failed");
             break;
